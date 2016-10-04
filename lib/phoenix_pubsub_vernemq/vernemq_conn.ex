@@ -2,6 +2,7 @@ defmodule Phoenix.PubSub.VerneMQ.Conn do
   @behaviour :gen_emqtt
   alias Phoenix.PubSub.Local
   require Logger
+  import Phoenix.PubSub.VerneMQ.Message
 
   def start_link(opts) do
     state = %{
@@ -34,19 +35,19 @@ defmodule Phoenix.PubSub.VerneMQ.Conn do
 
   def on_subscribe([{topic, _qos}]=subscription, state) do
     Logger.debug("MQTT server subscribed: #{inspect subscription}")
-    send state.server_name, {:subscribed, :erlang.list_to_binary(topic)}
+    send state.server_name, {:subscribed, decode_topic(topic)}
     {:ok, state}
   end
 
   def on_unsubscribe([topic], state) do
     Logger.debug("MQTT server unsubscribed: #{inspect topic}")
-    send state.server_name, {:unsubscribed, :erlang.list_to_binary(topic)}
+    send state.server_name, {:unsubscribed, decode_topic(topic)}
     {:ok, state}
   end
 
   def on_publish(topic, msg, state) do
     Logger.debug("MQTT server published #{inspect {topic, msg}}")
-    :ok = Local.broadcast(state.local_name, :none, :erlang.list_to_binary(topic), :erlang.binary_to_term(msg))
+    :ok = Local.broadcast(nil, state.server_name, 1, self(), decode_topic(topic), decode_msg(msg))
     {:ok, state}
   end
 

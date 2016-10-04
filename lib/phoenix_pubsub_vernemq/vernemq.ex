@@ -9,6 +9,8 @@ defmodule Phoenix.PubSub.VerneMQ do
 
   def init([server_name, opts]) when is_atom(server_name) do
     local_name = Module.concat(server_name, Local)
+    #gc_name = Module.concat(server_name, LocalGC)
+    pool_size   = 1
     emqtt_name = Module.concat(server_name, EMQTT)
 
     server_opts = [publish_qos: Keyword.get(opts, :publish_qos, 0),
@@ -30,12 +32,22 @@ defmodule Phoenix.PubSub.VerneMQ do
        server_name: server_name,
        local_name: local_name]
 
+    dispatch_rules = [{:subscribe, Phoenix.PubSub.VerneMQ.Server, [server_name]},
+                      {:unsubscribe, Phoenix.PubSub.VerneMQ.Server, [server_name]},
+                      {:broadcast, Phoenix.PubSub.VerneMQ.Server, [server_name]},
+                      {:direct_broadcast, Phoenix.PubSub.VerneMQ.Server, [server_name]},
+                      {:node_name, __MODULE__, []}]
+
     children = [
-      worker(Phoenix.PubSub.Local, [local_name]),
+     # worker(Phoenix.PubSub.Local, [server_name,gc_name]),
+      supervisor(Phoenix.PubSub.LocalSupervisor, [server_name, pool_size, dispatch_rules]),
       worker(Phoenix.PubSub.VerneMQ.Server, [server_opts]),
       worker(Phoenix.PubSub.VerneMQ.Conn, [emqtt_opts]),
     ]
 
     supervise children, strategy: :one_for_all
   end
+
+  @doc false
+  def node_name(), do: node()
 end
