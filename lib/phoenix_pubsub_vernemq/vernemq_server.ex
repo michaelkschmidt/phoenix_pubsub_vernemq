@@ -43,11 +43,11 @@ defmodule Phoenix.PubSub.VerneMQ.Server do
   end
 
   # Handle channel events
-  def handle_call(e={:subscribe, pid, topic, opts}, _from, state) do
-    IO.inspect e
+  def handle_call({:subscribe, pid, topic, opts}, _from, state) do
+    # IO.inspect e
     subscribers = Local.subscribers(state.server_name, topic, 1)
     mqtt_topic = encode_topic(topic)
-    if Dict.size(subscribers) == 0 do
+    if length(subscribers) == 0 do
       :ok = :gen_emqtt.subscribe(state.emqtt_name,
                                  mqtt_topic,
                                  state.subscribe_qos)
