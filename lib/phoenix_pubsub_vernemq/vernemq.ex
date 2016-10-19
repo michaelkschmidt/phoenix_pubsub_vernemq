@@ -1,13 +1,14 @@
 defmodule Phoenix.PubSub.VerneMQ do
   use Supervisor
 
-  def start_link(name, opts) do
-    supervisor_name = Module.concat(name, Supervisor)
-    Supervisor.start_link(__MODULE__, [name, opts],
+  def start_link(_, opts) do
+    supervisor_name = Module.concat(opts[:name], Supervisor)
+    Supervisor.start_link(__MODULE__, opts,
                           name: supervisor_name)
   end
 
-  def init([server_name, opts]) when is_atom(server_name) do
+  def init(opts) do
+    server_name = opts[:name]
     local_name = Module.concat(server_name, Local)
     #gc_name = Module.concat(server_name, LocalGC)
     pool_size   = 1
